@@ -11,26 +11,21 @@ module xy_router (
     localparam SOUTH = 3'b011;
     localparam NORTH = 3'b100;
 
-    logic current_x;
-    logic current_y;
-    logic dest_x;
-    logic dest_y;
+    wire current_x;
+    wire current_y;
+    wire dest_x;
+    wire dest_y;
 
-    always_comb begin
-        // Router ID mapping:
-        // R0 = 00 = x=0, y=0
-        // R1 = 01 = x=1, y=0
-        // R2 = 10 = x=0, y=1
-        // R3 = 11 = x=1, y=1
+    assign current_x = current_router_id[0];
+    assign current_y = current_router_id[1];
 
-        current_x = current_router_id[0];
-        current_y = current_router_id[1];
+    assign dest_x = dest_router_id[0];
+    assign dest_y = dest_router_id[1];
 
-        dest_x = dest_router_id[0];
-        dest_y = dest_router_id[1];
-
+    always @(*) begin
         // XY routing:
-        // First move in X direction, then move in Y direction.
+        // First move in X direction.
+        // Then move in Y direction.
         if (current_router_id == dest_router_id) begin
             route_direction = LOCAL;
         end
