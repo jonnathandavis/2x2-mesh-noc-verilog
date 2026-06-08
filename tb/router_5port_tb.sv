@@ -10,6 +10,9 @@ module router_5port_tb;
     logic [7:0] local_in_data;
     logic       local_in_valid;
 
+    logic       local_fifo_full;
+    logic       local_fifo_empty;
+
     logic [7:0] local_out_data;
     logic       local_out_valid;
 
@@ -33,6 +36,9 @@ module router_5port_tb;
         .local_in_data(local_in_data),
         .local_in_valid(local_in_valid),
 
+        .local_fifo_full(local_fifo_full),
+        .local_fifo_empty(local_fifo_empty),
+
         .local_out_data(local_out_data),
         .local_out_valid(local_out_valid),
 
@@ -52,7 +58,7 @@ module router_5port_tb;
     always #5 clk = ~clk;
 
     initial begin
-        $dumpfile("router_5port.vcd");
+        $dumpfile("router_5port_fifo.vcd");
         $dumpvars(0, router_5port_tb);
 
         clk = 0;
@@ -64,8 +70,8 @@ module router_5port_tb;
         #20;
         rst = 0;
 
-        $display("Starting 5-Port Router Test...");
-        $display("--------------------------------");
+        $display("Starting FIFO-Based 5-Port Router Test...");
+        $display("------------------------------------------");
 
         // Router R0 tests
         current_router_id = 2'b00;
@@ -83,8 +89,8 @@ module router_5port_tb;
         send_and_check(8'b10_11_0011, "WEST",  "R3 to R2, expected WEST");
         send_and_check(8'b11_11_0100, "LOCAL", "R3 to R3, expected LOCAL");
 
-        $display("--------------------------------");
-        $display("5-Port Router Test Completed.");
+        $display("------------------------------------------");
+        $display("FIFO-Based 5-Port Router Test Completed.");
 
         #20;
         $finish;
@@ -96,55 +102,77 @@ module router_5port_tb;
         input string test_name
     );
         begin
-            // Apply input before active clock edge
             @(negedge clk);
             local_in_data = packet;
             local_in_valid = 1'b1;
 
-            // Router captures packet here
-            @(posedge clk);
-            #1;
-
-            $display("TEST: %s | Packet = %b", test_name, packet);
-
-            if (expected_port == "LOCAL") begin
-                check_output(expected_port, local_out_valid, local_out_data, packet);
-            end
-            else if (expected_port == "NORTH") begin
-                check_output(expected_port, north_out_valid, north_out_data, packet);
-            end
-            else if (expected_port == "SOUTH") begin
-                check_output(expected_port, south_out_valid, south_out_data, packet);
-            end
-            else if (expected_port == "EAST") begin
-                check_output(expected_port, east_out_valid, east_out_data, packet);
-            end
-            else if (expected_port == "WEST") begin
-                check_output(expected_port, west_out_valid, west_out_data, packet);
-            end
-
-            // Deassert input valid
             @(negedge clk);
             local_in_valid = 1'b0;
             local_in_data = 8'h00;
 
-            @(posedge clk);
-            #1;
+            wait_for_output(expected_port, packet, test_name);
+        end
+    endtask
+
+    task wait_for_output(
+        input string expected_port,
+        input [7:0] expected_data,
+        input string test_name
+    );
+        integer timeout;
+        logic found;
+        begin
+            timeout = 0;
+            found = 1'b0;
+
+            while (timeout < 10 && !found) begin
+                @(posedge clk);
+                #1;
+
+                if (expected_port == "LOCAL" && local_out_valid) begin
+                    found = 1'b1;
+                    check_output(expected_port, local_out_data, expected_data, test_name);
+                end
+                else if (expected_port == "NORTH" && north_out_valid) begin
+                    found = 1'b1;
+                    check_output(expected_port, north_out_data, expected_data, test_name);
+                end
+                else if (expected_port == "SOUTH" && south_out_valid) begin
+                    found = 1'b1;
+                    check_output(expected_port, south_out_data, expected_data, test_name);
+                end
+                else if (expected_port == "EAST" && east_out_valid) begin
+                    found = 1'b1;
+                    check_output(expected_port, east_out_data, expected_data, test_name);
+                end
+                else if (expected_port == "WEST" && west_out_valid) begin
+                    found = 1'b1;
+                    check_output(expected_port, west_out_data, expected_data, test_name);
+                end
+
+                timeout = timeout + 1;
+            end
+
+            if (!found) begin
+                $display("FAIL: %s | No output detected on expected port %s",
+                         test_name, expected_port);
+            end
         end
     endtask
 
     task check_output(
         input string expected_port,
-        input logic actual_valid,
-        input logic [7:0] actual_data,
-        input logic [7:0] expected_data
+        input [7:0] actual_data,
+        input [7:0] expected_data,
+        input string test_name
     );
         begin
-            if (actual_valid && actual_data == expected_data) begin
-                $display("PASS: Output Port = %s | Data = %b", expected_port, actual_data);
+            if (actual_data == expected_data) begin
+                $display("PASS: %s | Output Port = %s | Data = %b",
+                         test_name, expected_port, actual_data);
             end else begin
-                $display("FAIL: Expected Port = %s | Expected Data = %b | Actual Valid = %b | Actual Data = %b",
-                         expected_port, expected_data, actual_valid, actual_data);
+                $display("FAIL: %s | Expected Port = %s | Expected Data = %b | Actual Data = %b",
+                         test_name, expected_port, expected_data, actual_data);
             end
         end
     endtask
