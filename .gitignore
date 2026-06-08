@@ -1,0 +1,15 @@
+# Simulation outputs
+*.vcd
+*.vvp
+
+# Simulation folder outputs
+sim/*
+
+# Keep sim folder structure
+!sim/.gitkeep
+
+# Editor/OS files
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
