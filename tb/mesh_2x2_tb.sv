@@ -14,6 +14,11 @@ module mesh_2x2_tb;
     logic       received_valid;
     logic [1:0] final_router_id;
 
+    logic [1:0] path_0;
+    logic [1:0] path_1;
+    logic [1:0] path_2;
+    logic [1:0] hop_count;
+
     mesh_2x2 dut (
         .clk(clk),
         .rst(rst),
@@ -25,13 +30,18 @@ module mesh_2x2_tb;
 
         .received_packet(received_packet),
         .received_valid(received_valid),
-        .final_router_id(final_router_id)
+        .final_router_id(final_router_id),
+
+        .path_0(path_0),
+        .path_1(path_1),
+        .path_2(path_2),
+        .hop_count(hop_count)
     );
 
     always #5 clk = ~clk;
 
     initial begin
-        $dumpfile("mesh_2x2.vcd");
+        $dumpfile("mesh_2x2_path.vcd");
         $dumpvars(0, mesh_2x2_tb);
 
         clk = 0;
@@ -44,8 +54,8 @@ module mesh_2x2_tb;
         #20;
         rst = 0;
 
-        $display("Starting 2x2 Mesh NoC Test...");
-        $display("------------------------------");
+        $display("Starting 2x2 Mesh NoC Path Verification...");
+        $display("-------------------------------------------");
 
         send_and_check(2'b00, 2'b01, 4'hA, "R0 to R1");
         send_and_check(2'b00, 2'b10, 4'hB, "R0 to R2");
@@ -55,8 +65,8 @@ module mesh_2x2_tb;
         send_and_check(2'b01, 2'b10, 4'hF, "R1 to R2");
         send_and_check(2'b11, 2'b11, 4'h5, "R3 to R3");
 
-        $display("------------------------------");
-        $display("2x2 Mesh NoC Test Completed.");
+        $display("-------------------------------------------");
+        $display("2x2 Mesh NoC Path Verification Completed.");
 
         #20;
         $finish;
@@ -94,8 +104,7 @@ module mesh_2x2_tb;
                     found = 1'b1;
 
                     if (received_packet == expected_packet && final_router_id == dest) begin
-                        $display("PASS: %s | Packet = %b | Final Router = R%0d",
-                                 test_name, received_packet, final_router_id);
+                        print_pass(test_name, received_packet);
                     end else begin
                         $display("FAIL: %s | Expected Packet = %b | Got Packet = %b | Expected Router = R%0d | Got Router = R%0d",
                                  test_name, expected_packet, received_packet, dest, final_router_id);
@@ -110,6 +119,26 @@ module mesh_2x2_tb;
             end
 
             #10;
+        end
+    endtask
+
+    task print_pass(
+        input string test_name,
+        input [7:0] packet
+    );
+        begin
+            if (hop_count == 0) begin
+                $display("PASS: %s | Path = R%0d | Packet = %b",
+                         test_name, path_0, packet);
+            end
+            else if (hop_count == 1) begin
+                $display("PASS: %s | Path = R%0d -> R%0d | Packet = %b",
+                         test_name, path_0, path_1, packet);
+            end
+            else begin
+                $display("PASS: %s | Path = R%0d -> R%0d -> R%0d | Packet = %b",
+                         test_name, path_0, path_1, path_2, packet);
+            end
         end
     endtask
 
