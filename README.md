@@ -322,41 +322,28 @@ Completed:
 
 ---
 
-## Future Scope
+## Implementation Note
 
-* FPGA synthesis and implementation
-* Full structural interconnection of four 5-port routers
-* Multiple simultaneous packet transfers
-* Virtual channel support
-* Larger 4×4 mesh NoC
-* Fault-tolerant routing
-* Low-power NoC design
+The current implementation verifies the 2×2 Mesh NoC architecture using modular RTL blocks and a mesh-level packet transfer model. The FIFO, XY routing logic, round-robin arbiter, FIFO-buffered router, and mesh-level packet path verification are implemented and tested separately using automated Verilog testbenches.
+
+In the present version, the mesh-level model validates packet movement between four router nodes using deterministic XY routing. A fully structural implementation, where four complete 5-port router modules are directly interconnected through North, South, East, and West ports with simultaneous packet traffic support, can be added as a future enhancement.
+
+This approach keeps the design simple, modular, and suitable for academic simulation-based verification while still demonstrating the main concepts of NoC communication, destination-based routing, and automated verification.
 
 ---
 
-## Team Study Guide
+## Future Scope
 
-Each member should study one part deeply:
+- Full structural interconnection of four 5-port routers
+- Support for simultaneous packet transfers
+- FIFO buffering on all five router input ports
+- Integration of round-robin arbitration inside the full router
+- FPGA synthesis and implementation
+- Virtual channel support
+- Larger 4×4 Mesh NoC
+- Fault-tolerant routing
+- Low-power NoC design
 
-| Member   | Topic                                       |
-| -------- | ------------------------------------------- |
-| Member 1 | FIFO and packet format                      |
-| Member 2 | XY routing and mesh topology                |
-| Member 3 | Round-robin arbiter and router design       |
-| Member 4 | Testbenches, waveforms, results, and report |
+---
 
-Everyone should understand the full packet flow:
 
-```text
-Packet creation
-↓
-Destination extraction
-↓
-XY routing decision
-↓
-Router forwarding
-↓
-Mesh-level packet delivery
-↓
-Automated PASS/FAIL verification
-```
